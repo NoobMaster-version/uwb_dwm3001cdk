@@ -3,7 +3,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "sit_led.h"
+#include <sit_led/sit_led.h>
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
