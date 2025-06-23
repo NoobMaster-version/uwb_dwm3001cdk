@@ -20,7 +20,7 @@ static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
 static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios);
 static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3_NODE, gpios);
 
-void main(void)
+int main(void)
 {
 	printk("Welcome to Hello LED Test Example\n");
 	LOG_INF("Hello world leds sample");
@@ -57,4 +57,5 @@ void main(void)
 		k_sleep(K_MSEC(1000));
 		gpio_pin_set_dt(&led3, 1);
 	}
+    return 0;
 }

@@ -3,7 +3,7 @@
  * Copyright (c) 2015 - Decawave Ltd, Dublin, Ireland.
  * Copyright (c) 2021 - Home Smart Mesh
  * Copyright (c) 2022 - Sven Hoyer
- * 
+ *
  * This file is part of Zephyr-DWM1001.
  *
  *   Zephyr-DWM1001 is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
  *
  *   You should have received a copy of the GNU General Public License
  *   along with Zephyr-DWM1001.  If not, see <https://www.gnu.org/licenses/>.
- * 
+ *
  */
 #include "deca_device_api.h"
 
@@ -90,14 +90,14 @@ int main(void) {
     uint8_t frame_sequenz = 0;
 
 	while (1) {
-		sit_receive_now();
+		sit_receive_now(0,0);
         msg_simple_t rx_poll_msg;
 		msg_id_t msg_id = twr_1_poll;
 		if(sit_check_msg_id(msg_id, &rx_poll_msg)){
 			uint64_t poll_rx_ts = get_rx_timestamp_u64();
-            
+
             uint32_t resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS_T * UUS_TO_DWT_TIME)) >> 8;
-            
+
             msg_simple_t msg_ds_poll_resp = {
                     ds_twr_2_resp,
                     rx_poll_msg.header.sequence,

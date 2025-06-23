@@ -10,20 +10,20 @@
 #include <string.h>
 #include <errno.h>
 
-#include <zephyr.h>
-#include <zephyr/types.h>
-#include <sys/printk.h>
-#include <sys/byteorder.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/sys/byteorder.h>
+#include <zephyr/bluetooth/bluetooth.h>
 
-#include <sit_mesh.h>
-#include <sit_led.h>
+#include <sit_mesh/sit_mesh.h>
+#include <sit_led/sit_led.h>
 
 #define APP_NAME "SIMPLE MESH EXAMPLE\n"
 
 /* size of stack area used by each thread */
 #define STACKSIZE 2048
 
-void main(void) {
+int main(void) {
 	printk(APP_NAME);
 	printk("==================\n");
 	k_sleep(K_SECONDS(2));
@@ -38,5 +38,5 @@ void main(void) {
 		}
 		k_sleep(K_SECONDS(1));
 	}
-	 
+	return 0;
 }
