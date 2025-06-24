@@ -1,0 +1,18 @@
+sample:
+  name: Multi-Responder DS-TWR Node
+  description: >
+    Configurable Double-Sided Two-Way Ranging responder node that works with
+    the multi-responder initiator. Each node can be configured with a unique
+    ID and provides high-accuracy distance measurements.
+
+tests:
+  sample.uwb.multi_responder_node:
+    platform_allow: qorvo_dwm3001cdk
+    tags: uwb ds-twr ranging responder node
+    harness: console
+    harness_config:
+      type: multi_line
+      regex:
+        - "Starting MULTI-RESPONDER DS-TWR Node"
+        - "SIT initialization successful"
+        - "Responder node .* ready and listening"
