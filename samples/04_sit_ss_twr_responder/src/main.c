@@ -3,7 +3,7 @@
  * Copyright (c) 2015 - Decawave Ltd, Dublin, Ireland.
  * Copyright (c) 2021 - Home Smart Mesh
  * Copyright (c) 2022 - Sven Hoyer
- * 
+ *
  * This file is part of Zephyr-DWM1001.
  *
  *   Zephyr-DWM1001 is free software: you can redistribute it and/or modify
@@ -18,19 +18,19 @@
  *
  *   You should have received a copy of the GNU General Public License
  *   along with Zephyr-DWM1001.  If not, see <https://www.gnu.org/licenses/>.
- * 
+ *
  */
 #include "deca_probe_interface.h"
 #include <config_options.h>
 #include <deca_device_api.h>
-#include <dw3000_hw.h> 
+#include <dw3000_hw.h>
 #include <deca_spi.h>
 #include <example_selection.h>
 #include <port.h>
 #include <shared_defines.h>
 
-#include <sit.h>
-#include <sit_led.h>
+#include <sit/sit.h>
+#include <sit_led/sit_led.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -81,7 +81,7 @@ int main(void) {
 	int init_ok = sit_init(&config, TX_ANT_DLY, RX_ANT_DLY);
 	// INIT LED and let them Blink one Time to see Intitalion Finshed
     sit_led_init();
-    
+
     if(init_ok < 0){
         sit_set_led(2, 0);
     } else {
@@ -90,7 +90,7 @@ int main(void) {
 
     uint32_t regStatus = sit_get_device_status();
     LOG_INF("statusreg = 0x%08x",regStatus);
-    k_sleep(K_SECONDS(2)); // Allow Logging to write out put 
+    k_sleep(K_SECONDS(2)); // Allow Logging to write out put
 
     int frame_sequenz = 0;
     k_yield();
@@ -103,11 +103,11 @@ int main(void) {
 		msg_id_t msg_id = twr_1_poll;
 		if(sit_checkReceivedIdMsg(msg_id, &rx_poll_msg)){
 			uint64_t poll_rx_ts = get_rx_timestamp_u64();
-            
+
             uint32_t resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
 
             uint32_t resp_tx_ts = (((uint64_t)(resp_tx_time & 0xFFFFFFFEUL)) << 8) + TX_ANT_DLY;
-            
+
             msg_ss_twr_final_t msg_ss_twr_final_t = {
                     ss_twr_2_resp, (uint8_t)(rx_poll_msg.header.sequence + 1),
                     rx_poll_msg.header.dest , rx_poll_msg.header.source,(uint32_t)poll_rx_ts, resp_tx_ts,0
