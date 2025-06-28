@@ -37,7 +37,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define APP_NAME "DS-TWR RESPONDER EXAMPLE\n"
 
 /* This is the responder's ID. */
-#define RESPONDER_ID 4
+#define RESPONDER_ID 5
 
 /* Default antenna delay values for 64 MHz PRF. */
 #define TX_ANT_DLY 16385

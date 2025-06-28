@@ -38,7 +38,7 @@ static const uint8_t responder_id_list[] = {2, 3, 4, 5};
 static uint8_t this_initiator_node_id = 1;
 
 /* Time slot for each responder in milliseconds. */
-#define TIME_SLOT_MS 25
+#define TIME_SLOT_MS 75
 
 /* Default antenna delay values for 64 MHz PRF. */
 #define TX_ANT_DLY 16385
