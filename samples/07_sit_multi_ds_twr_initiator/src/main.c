@@ -1,14 +1,20 @@
-/*
- * Copyright (c) 2023 Sven Hoyer
- * 
- * Multi-responder DS-TWR initiator example code. This code performs 
- * distance measurements with multiple responders in sequence.
+/*! ----------------------------------------------------------------------------
+ *  @file    ds_twr_initiator.c
+ *  @brief   Double-sided two-way ranging (DS TWR) initiator example code
+ *
+ *           This is a simple code example which acts as the initiator in a DS TWR distance measurement exchange.
+ *           This application cycles through a list of responders, performing a DS TWR exchange with each one in a
+ *           dedicated time slot.
+ *
+ * @attention
+ *
+ * Copyright 2015 - 2021 (c) Decawave Ltd, Dublin, Ireland.
+ *
+ * All rights reserved.
+ *
+ * @author Decawave
  */
-#include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
-
-#include <deca_device_api.h>
-#include <deca_probe_interface.h>
+#include "deca_device_api.h"
 
 #include <sit/sit.h>
 #include <sit/sit_device.h>
@@ -17,124 +23,136 @@
 #include <sit/sit_utils.h>
 #include <sit_led/sit_led.h>
 
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 /* Example application name */
-#define APP_NAME "MULTI-RESPONDER DS-TWR INITIATOR v1.0"
+#define APP_NAME "DS-TWR INITIATOR EXAMPLE\n"
 
-/* Default antenna delay values for 64 MHz PRF */
+/* List of responder device IDs to range with */
+static const uint8_t responder_id_list[] = {2, 3, 4, 5};
+#define NUM_RESPONDERS (sizeof(responder_id_list) / sizeof(responder_id_list[0]))
+
+/* This is the initiator's ID. */
+static uint8_t this_initiator_node_id = 1;
+
+/* Time slot for each responder in milliseconds. */
+#define TIME_SLOT_MS 25
+
+/* Default antenna delay values for 64 MHz PRF. */
 #define TX_ANT_DLY 16385
 #define RX_ANT_DLY 16385
 
-/* Timing parameters */
-#define CPU_PROCESSING_TIME 400
-#define POLL_TX_TO_RESP_RX_DLY_UUS (350 + CPU_PROCESSING_TIME)
-#define RESP_RX_TO_FINAL_TX_DLY_UUS (350 + CPU_PROCESSING_TIME)
-#define RESP_RX_TIMEOUT_UUS 1150
+/* DS-TWR delays */
+#define POLL_TX_TO_RESP_RX_DLY_UUS_T (350 + CPU_PROCESSING_TIME)
+#define RESP_RX_TO_FINAL_TX_DLY_UUS_T (350 + CPU_PROCESSING_TIME)
+#define RESP_RX_TIMEOUT_UUS_T 2000
 #define PRE_TIMEOUT 5
 
-/* Number of responders to poll */
-#define NUM_RESPONDERS 4
-#define BASE_RESPONDER_ID 100  // Responders will be numbered 100, 101, 102, 103
+int main(void)
+{
+    printk(APP_NAME);
+    printk("==================\n");
 
-/* Function to perform distance measurement with a single responder */
-static bool measure_distance_to_responder(uint8_t responder_id, uint8_t sequence) {
-    // Configure timing parameters
-    sit_set_rx_after_tx_delay(POLL_TX_TO_RESP_RX_DLY_UUS);
-    sit_set_rx_timeout(RESP_RX_TIMEOUT_UUS + 2000);
-    sit_set_preamble_detection_timeout(PRE_TIMEOUT + 200);
-
-    // Send poll message
-    msg_simple_t twr_poll = {
-        {twr_1_poll, sequence, device_settings.deviceID, responder_id}, 
-        0
-    };
-    
-    sit_start_poll((uint8_t*)&twr_poll, sizeof(twr_poll));
-
-    // Wait for response
-    msg_simple_t rx_resp_msg;
-    msg_id_t msg_id = ds_twr_2_resp;
-
-    if (!sit_check_msg_id(msg_id, &rx_resp_msg)) {
-        LOG_WRN("No response from responder %d", responder_id);
-        dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
-        return false;
-    }
-
-    // Get timestamps
-    uint64_t poll_tx_ts = get_tx_timestamp_u64();
-    uint64_t resp_rx_ts = get_rx_timestamp_u64();
-    
-    // Calculate final message transmission time
-    uint32_t final_tx_time = (resp_rx_ts + (RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
-    uint64_t final_tx_ts = (((uint64_t)(final_tx_time & 0xFFFFFFFEUL)) << 8) + TX_ANT_DLY;
-
-    // Prepare and send final message
-    msg_ds_twr_final_t final_msg = {
-        {ds_twr_3_final, rx_resp_msg.header.sequence, 
-         rx_resp_msg.header.dest, rx_resp_msg.header.source},
-        (uint32_t)poll_tx_ts,
-        (uint32_t)resp_rx_ts,
-        (uint32_t)final_tx_ts,
-        0
-    };
-
-    if (sit_send_at((uint8_t*)&final_msg, sizeof(final_msg), final_tx_time)) {
-        LOG_INF("Distance measurement cycle completed with responder %d", responder_id);
-        return true;
-    }
-    
-    LOG_WRN("Failed to send final message to responder %d", responder_id);
-    return false;
-}
-
-void main(void) {
-    LOG_INF(APP_NAME);
-    LOG_INF("===================");
-
-    // Initialize LEDs for status indication
+    // INIT LED and let them Blink one Time to see Intitalion Finshed
     sit_led_init();
 
-    // Initialize UWB device
     int init_ok = sit_init();
-    if (init_ok < 0) {
-        LOG_ERR("Device initialization failed");
-        sit_set_led(2, 1);  // Error indication
-        return;
+
+    if (init_ok < 0)
+    {
+        sit_set_led(2, 0);
+    }
+    else
+    {
+        sit_set_led(1, 0);
     }
 
-    // Set antenna delays
-    set_antenna_delay(RX_ANT_DLY, TX_ANT_DLY);
-    
-    sit_set_led(1, 1);  // Success indication
+    uint8_t frame_sequenz = 0;
+    uint8_t responder_idx = 0;
 
-    // Configure device as initiator
-    device_settings.deviceID = 1;     // Initiator ID
-    device_settings.state = measurement;
-    device_settings.responder = BASE_RESPONDER_ID + NUM_RESPONDERS - 1;
-    
-    uint8_t sequence = 0;
-    
-    LOG_INF("Starting measurements with %d responders", NUM_RESPONDERS);
-    LOG_INF("Responder IDs: %d to %d", BASE_RESPONDER_ID, device_settings.responder);
-    
-    while (true) {
-        // Measure distance to each responder in sequence
-        for (uint8_t i = 0; i < NUM_RESPONDERS; i++) {
-            uint8_t responder_id = BASE_RESPONDER_ID + i;
-            
-            if (measure_distance_to_responder(responder_id, sequence)) {
-                sit_toggle_led(0);  // Toggle LED to indicate successful measurement
+    while (1)
+    {
+        uint8_t current_responder_id = responder_id_list[responder_idx];
+
+        sit_set_rx_tx_delay_and_rx_timeout(POLL_TX_TO_RESP_RX_DLY_UUS_T, RESP_RX_TIMEOUT_UUS_T);
+        sit_set_preamble_detection_timeout(PRE_TIMEOUT);
+
+        LOG_INF("Ranging with responder ID: %d", current_responder_id);
+        msg_simple_t twr_poll = {{twr_1_poll, frame_sequenz, this_initiator_node_id, current_responder_id}, 0};
+        sit_start_poll((uint8_t *)&twr_poll, (uint16_t)sizeof(twr_poll));
+
+        msg_simple_t rx_resp_msg;
+        msg_id_t msg_id = ds_twr_2_resp;
+
+        if (sit_check_msg_id(msg_id, &rx_resp_msg))
+        {
+            uint64_t poll_tx_ts = get_tx_timestamp_u64();
+            uint64_t resp_rx_ts = get_rx_timestamp_u64();
+
+            uint32_t final_tx_time = (resp_rx_ts + (RESP_RX_TO_FINAL_TX_DLY_UUS_T * UUS_TO_DWT_TIME)) >> 8;
+            uint64_t final_tx_ts = (((uint64_t)(final_tx_time & 0xFFFFFFFEUL)) << 8) + TX_ANT_DLY;
+
+            msg_ds_twr_final_t final_msg = {
+                {ds_twr_3_final,
+                 rx_resp_msg.header.sequence,
+                 rx_resp_msg.header.dest,
+                 rx_resp_msg.header.source},
+                (uint32_t)poll_tx_ts,
+                (uint32_t)resp_rx_ts,
+                (uint32_t)final_tx_ts,
+                0};
+
+            bool ret = sit_send_at_with_response((uint8_t *)&final_msg, sizeof(msg_ds_twr_final_t), final_tx_time);
+
+            if (ret == false)
+            {
+                LOG_WRN("Failed to send final message to responder %d", current_responder_id);
             }
-            
-            // Small delay between measurements
-            k_msleep(50);
+            else
+            {
+                msg_ds_twr_resp_t rx_final_resp_msg;
+                msg_id = ds_twr_4_final;
+                if (sit_check_ds_resp_msg_id(msg_id, &rx_final_resp_msg))
+                {
+                    uint32_t poll_tx_ts_32 = final_msg.poll_tx_ts;
+                    uint32_t resp_rx_ts_32 = final_msg.resp_rx_ts;
+                    uint32_t final_tx_ts_32 = final_msg.final_tx_ts;
+
+                    uint32_t poll_rx_ts_resp = rx_final_resp_msg.poll_rx_ts;
+                    uint32_t resp_tx_ts_resp = rx_final_resp_msg.resp_tx_ts;
+                    uint32_t final_rx_ts_resp = rx_final_resp_msg.final_rx_ts;
+
+                    double Ra, Rb, Da, Db;
+                    int64_t tof_dtu;
+                    Ra = (double)(resp_rx_ts_32 - poll_tx_ts_32);
+                    Rb = (double)(final_rx_ts_resp - resp_tx_ts_resp);
+                    Da = (double)(final_tx_ts_32 - resp_rx_ts_32);
+                    Db = (double)(resp_tx_ts_resp - poll_rx_ts_resp);
+                    tof_dtu = (int64_t)((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db));
+
+                    double tof = tof_dtu * DWT_TIME_UNITS;
+                    double distance = tof * SPEED_OF_LIGHT;
+                    LOG_INF("Distance to responder %d: %.2f m", current_responder_id, distance);
+                }
+                else
+                {
+                    LOG_WRN("Did not receive final response from responder %d", current_responder_id);
+                    dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
+                }
+            }
+        }
+        else
+        {
+            LOG_WRN("Did not receive response from responder %d", current_responder_id);
+            dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
         }
 
-        sequence++;
-        
-        // Delay before next round of measurements
-        k_msleep(100);
+        // Move to the next responder in the list
+        responder_idx = (responder_idx + 1) % NUM_RESPONDERS;
+        frame_sequenz++;
+        k_msleep(TIME_SLOT_MS);
     }
+    return 0;
 }

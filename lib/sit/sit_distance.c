@@ -1,5 +1,5 @@
 /**********************************************************************************
- * 
+ *
  *  Copyright (C) 2023  Sven Hoyer
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -14,21 +14,21 @@
 
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * 
+ *
 ***********************************************************************************/
 
-/** 
+/**
  * @file sit_distance.c
  * @author Sven Hoyer (svhoy)
  * @date 17.04.2023
  * @brief Implementation of functions for distance measurement.
  *
- * This file implement functions for distance measurement for the 
- * DWM3001cdk in the SIT system. 
+ * This file implement functions for distance measurement for the
+ * DWM3001cdk in the SIT system.
  *
- *  
+ *
  * @bug No known bugs.
- * @todo everything 
+ * @todo everything
  */
 #include "sit/sit_distance.h"
 #include "sit/sit_config.h"
@@ -45,14 +45,14 @@ LOG_MODULE_REGISTER(SIT_DISTANCE, LOG_LEVEL_INF);
 
 uint32_t status_reg;
 
-diagnostic_info diagnostic; 
+diagnostic_info diagnostic;
 
 /***************************************************************************
- * Start ranging with a poll msg 
+ * Start ranging with a poll msg
  *
  * @param uint8_t* msg_data ->  pointer to the data you like to send with
  *                              the poll msg
- * @param uint16_t msg_size ->  length of the data you like to send 
+ * @param uint16_t msg_size ->  length of the data you like to send
  *
  * @return None
  *
@@ -65,8 +65,8 @@ void sit_start_poll(uint8_t* msg_data, uint16_t msg_size){
 }
 
 bool sit_send_at(uint8_t* msg_data, uint16_t size, uint32_t tx_time){
-	dwt_writetxdata(size, msg_data, 0); 
-	dwt_writetxfctrl(size, 0, 1); 
+	dwt_writetxdata(size, msg_data, 0);
+	dwt_writetxfctrl(size, 0, 1);
 	dwt_setdelayedtrxtime(tx_time);
 	uint8_t ret = dwt_starttx(DWT_START_TX_DELAYED);
 	if(ret == DWT_SUCCESS) {
@@ -84,8 +84,8 @@ bool sit_send_at(uint8_t* msg_data, uint16_t size, uint32_t tx_time){
 
 bool sit_send_at_with_response(uint8_t* msg_data, uint16_t size, uint32_t tx_time){
 	dwt_setdelayedtrxtime(tx_time);
-	dwt_writetxdata(size, msg_data, 0); 
-	dwt_writetxfctrl(size, 0, 1); 
+	dwt_writetxdata(size, msg_data, 0);
+	dwt_writetxfctrl(size, 0, 1);
 	uint8_t ret = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
 	if(ret == DWT_SUCCESS) {
 		waitforsysstatus(&status_reg, NULL, DWT_INT_TXFRS_BIT_MASK, 0);
@@ -114,7 +114,7 @@ void sit_receive_now(uint16_t preamble_detction_timeout, uint32_t rx_timeout) {
 void sit_receive_at(uint32_t timeout) {
 	dwt_setpreambledetecttimeout(0);
 	dwt_setrxtimeout(timeout); // 0 : disable timeout
-	dwt_rxenable(DWT_START_RX_DELAYED | DWT_IDLE_ON_DLY_ERR); //DWT_START_RX_DELAYED only used with dwt_setdelayedtrxtime() before 
+	dwt_rxenable(DWT_START_RX_DELAYED | DWT_IDLE_ON_DLY_ERR); //DWT_START_RX_DELAYED only used with dwt_setdelayedtrxtime() before
 }
 
 uint32_t sit_msg_receive() {
@@ -192,6 +192,20 @@ bool sit_check_ds_final_msg_id(msg_id_t id, msg_ds_twr_final_t* message) {
 		}
 	} else {
 		LOG_ERR("sit_checkReceivedIdFinalMsg(%u,header) fail",(uint8_t)id);
+	}
+	return result;
+}
+
+bool sit_check_ds_resp_msg_id(msg_id_t id, msg_ds_twr_resp_t* message) {
+	bool result = false;
+	if(sit_check_msg((uint8_t*)message, sizeof(msg_ds_twr_resp_t))){
+		if(message->header.id == id) {
+			result = true;
+		} else {
+			LOG_ERR("sit_check_ds_resp_msg_id() mismatch id(%u/%u)",(uint8_t)id,(uint8_t)message->header.id);
+		}
+	} else {
+		LOG_ERR("sit_check_ds_resp_msg_id(%u,header) fail",(uint8_t)id);
 	}
 	return result;
 }

@@ -1,14 +1,26 @@
-/*
- * Copyright (c) 2023 Sven Hoyer
- * 
- * Multi-responder DS-TWR responder example code. Each responder listens for
- * poll messages with its specific ID and responds accordingly.
+/**
+ * Copyright (c) 2019 - Frederic Mes, RTLOC
+ * Copyright (c) 2015 - Decawave Ltd, Dublin, Ireland.
+ * Copyright (c) 2021 - Home Smart Mesh
+ * Copyright (c) 2022 - Sven Hoyer
+ *
+ * This file is part of Zephyr-DWM1001.
+ *
+ *   Zephyr-DWM1001 is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Zephyr-DWM1001 is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Zephyr-DWM1001.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
-#include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
-
-#include <deca_device_api.h>
-#include <deca_probe_interface.h>
+#include "deca_device_api.h"
 
 #include <sit/sit.h>
 #include <sit/sit_device.h>
@@ -17,130 +29,114 @@
 #include <sit/sit_utils.h>
 #include <sit_led/sit_led.h>
 
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
-/* Example application name */
-#define APP_NAME "MULTI-RESPONDER DS-TWR RESPONDER v1.0"
+#define APP_NAME "DS-TWR RESPONDER EXAMPLE\n"
 
-/* Timing parameters */
-#define POLL_RX_TO_RESP_TX_DLY_UUS 900
-#define RESP_TX_TO_FINAL_RX_DLY_UUS 600
-#define FINAL_RX_TIMEOUT_UUS 1200
-#define PRE_TIMEOUT 5
+/* This is the responder's ID. */
+#define RESPONDER_ID 4
 
-/* Default antenna delay values for 64 MHz PRF */
+/* Default antenna delay values for 64 MHz PRF. */
 #define TX_ANT_DLY 16385
 #define RX_ANT_DLY 16385
 
-/* CONFIGURE THIS: Set responder ID (100-103) */
-#define RESPONDER_ID 100
+/* DS-TWR delays */
+#define POLL_RX_TO_RESP_TX_DLY_UUS_T 900
+#define RESP_TX_TO_FINAL_RX_DLY_UUS_T 600
+#define FINAL_RX_TIMEOUT_T 1200
+#define PRE_TIMEOUT 5
 
-void main(void) {
-    LOG_INF(APP_NAME);
-    LOG_INF("===================");
-    LOG_INF("Responder ID: %d", RESPONDER_ID);
+int main(void)
+{
+    printk(APP_NAME);
+    printk("==================\n");
 
-    // Initialize LEDs for status indication
+    // INIT LED and let them Blink one Time to see Intitalion Finshed
     sit_led_init();
 
-    // Initialize UWB device
-    int init_ok = sit_init();
-    if (init_ok < 0) {
-        LOG_ERR("Device initialization failed");
-        sit_set_led(2, 1);  // Error indication
-        return;
+    int init_ok = 0;
+    do
+    {
+        init_ok = sit_init();
+    } while (init_ok > 1);
+
+    if (init_ok < 0)
+    {
+        sit_set_led(2, 1);
+    }
+    else
+    {
+        sit_set_led(1, 1);
     }
 
-    // Set antenna delays
-    set_antenna_delay(RX_ANT_DLY, TX_ANT_DLY);
+    uint8_t frame_sequenz = 0;
 
-    sit_set_led(1, 1);  // Success indication
-
-    // Configure device settings
-    device_settings.state = measurement;  // Always in measurement mode
-    device_settings.deviceID = RESPONDER_ID;
-
-    while (true) {
-        // Listen for incoming poll messages
+    while (1)
+    {
         sit_receive_now(0, 0);
-        
         msg_simple_t rx_poll_msg;
         msg_id_t msg_id = twr_1_poll;
+        if (sit_check_msg_id(msg_id, &rx_poll_msg) && (rx_poll_msg.header.dest == RESPONDER_ID))
+        {
+            uint64_t poll_rx_ts = get_rx_timestamp_u64();
 
-        if (sit_check_msg_id(msg_id, &rx_poll_msg)) {
-            // Check if this poll is for us
-            if (rx_poll_msg.header.dest == device_settings.deviceID) {
-                LOG_INF("Received poll for this device (ID: %d)", device_settings.deviceID);
-                
-                // Get poll reception timestamp
-                uint64_t poll_rx_ts = get_rx_timestamp_u64();
+            uint32_t resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS_T * UUS_TO_DWT_TIME)) >> 8;
 
-                // Calculate response transmission time
-                uint32_t resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
+            msg_simple_t msg_ds_poll_resp = {
+                {ds_twr_2_resp,
+                 rx_poll_msg.header.sequence,
+                 rx_poll_msg.header.dest,
+                 rx_poll_msg.header.source},
+                0};
+            sit_set_rx_after_tx_delay(RESP_TX_TO_FINAL_RX_DLY_UUS_T);
+            sit_set_rx_timeout(FINAL_RX_TIMEOUT_T);
+            sit_set_preamble_detection_timeout(PRE_TIMEOUT);
+            bool ret = sit_send_at_with_response((uint8_t *)&msg_ds_poll_resp, sizeof(msg_simple_t), resp_tx_time);
+            if (ret == false)
+            {
+                LOG_WRN("Failed to send response to initiator");
+                continue;
+            }
 
-                // Prepare and send response message
-                msg_simple_t msg_ds_poll_resp = {
-                    {ds_twr_2_resp,
-                     rx_poll_msg.header.sequence,
-                     device_settings.deviceID,
-                     rx_poll_msg.header.source},
-                    0
-                };
+            msg_ds_twr_final_t rx_ds_final_msg;
+            msg_id = ds_twr_3_final;
+            if (sit_check_ds_final_msg_id(msg_id, &rx_ds_final_msg))
+            {
+                uint64_t resp_tx_ts = get_tx_timestamp_u64();
+                uint64_t final_rx_ts = get_rx_timestamp_u64();
 
-                // Configure for receiving final message
-                sit_set_rx_after_tx_delay(RESP_TX_TO_FINAL_RX_DLY_UUS);
-                sit_set_rx_timeout(FINAL_RX_TIMEOUT_UUS);
-                sit_set_preamble_detection_timeout(PRE_TIMEOUT);
+                uint32_t final_resp_tx_time = (final_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS_T * UUS_TO_DWT_TIME)) >> 8;
 
-                // Send response and wait for final message
-                if (!sit_send_at_with_response((uint8_t*)&msg_ds_poll_resp, 
-                                             sizeof(msg_simple_t), 
-                                             resp_tx_time)) {
-                    LOG_WRN("Failed to send response");
-                    continue;
+                msg_ds_twr_resp_t final_resp_msg = {{(msg_id_t)ds_twr_4_final,
+                                                     rx_ds_final_msg.header.sequence,
+                                                     rx_ds_final_msg.header.dest,
+                                                     rx_ds_final_msg.header.source},
+                                                    (uint32_t)poll_rx_ts,
+                                                    (uint32_t)resp_tx_ts,
+                                                    (uint32_t)final_rx_ts,
+                                                    0};
+
+                ret = sit_send_at((uint8_t *)&final_resp_msg, sizeof(msg_ds_twr_resp_t), final_resp_tx_time);
+                if (ret == false)
+                {
+                    LOG_WRN("Failed to send final response to initiator");
                 }
-
-                // Process final message
-                msg_ds_twr_final_t rx_final_msg;
-                msg_id = ds_twr_3_final;
-
-                if (sit_check_ds_final_msg_id(msg_id, &rx_final_msg)) {
-                    // Get response transmission and final reception timestamps
-                    uint64_t resp_tx_ts = get_tx_timestamp_u64();
-                    uint64_t final_rx_ts = get_rx_timestamp_u64();
-
-                    // Extract timestamps from final message
-                    uint32_t poll_tx_ts = rx_final_msg.poll_tx_ts;
-                    uint32_t resp_rx_ts = rx_final_msg.resp_rx_ts;
-                    uint32_t final_tx_ts = rx_final_msg.final_tx_ts;
-
-                    // Convert timestamps to 32-bit
-                    uint32_t poll_rx_ts_32 = (uint32_t)poll_rx_ts;
-                    uint32_t resp_tx_ts_32 = (uint32_t)resp_tx_ts;
-                    uint32_t final_rx_ts_32 = (uint32_t)final_rx_ts;
-
-                    // Calculate time of flight
-                    double Ra = (double)(resp_rx_ts - poll_tx_ts);
-                    double Rb = (double)(final_rx_ts_32 - resp_tx_ts_32);
-                    double Da = (double)(final_tx_ts - resp_rx_ts);
-                    double Db = (double)(resp_tx_ts_32 - poll_rx_ts_32);
-
-                    int64_t tof_dtu = (int64_t)((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db));
-
-                    double tof = tof_dtu * DWT_TIME_UNITS;
-                    double distance = tof * SPEED_OF_LIGHT;
-
-                    LOG_INF("Distance calculated: %.2f m", distance);
-                    sit_toggle_led(0);  // Toggle LED to indicate successful measurement
-                } else {
-                    LOG_WRN("Failed to receive final message");
-                    dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
-                }
-            } else {
-                LOG_DBG("Received poll for different device: %d", rx_poll_msg.header.dest);
+            }
+            else
+            {
+                LOG_WRN("Did not receive final message from initiator");
+                dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
             }
         }
-
-        k_msleep(10);  // Small delay to prevent CPU overload
+        else
+        {
+            // Not our poll, just go back to listening
+        }
+        frame_sequenz++;
     }
+
+    return 0;
 }

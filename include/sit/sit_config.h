@@ -1,5 +1,5 @@
 /**********************************************************************************
- * 
+ *
  *  Copyright (C) 2023  Sven Hoyer
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -14,20 +14,20 @@
 
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * 
+ *
 ***********************************************************************************/
 
-/** 
+/**
  * @file sit_config.h
  * @author Sven Hoyer (svhoy)
  * @date 17.04.2023
  * @brief Defniton config options for SIT system.
  *
- * This header defines different configurations for the SIT system. 
+ * This header defines different configurations for the SIT system.
  *
- *  
+ *
  * @bug No known bugs.
- * @todo everything 
+ * @todo everything
  */
 
 #ifndef __SIT_CONFIG_H__
@@ -41,7 +41,7 @@
 
 #include <sit_json/sit_json_config.h>
 
-/** 
+/**
  * Enum to define if a device is an initator or an responder
 */
 typedef enum {
@@ -56,8 +56,8 @@ typedef enum {
 extern device_type_t device_type;
 
 
-/** 
- * Enum for different mesaurements states 
+/**
+ * Enum for different mesaurements states
 */
 typedef enum {
     measurement,  ///< measurement state will run the distance measurement
@@ -67,7 +67,7 @@ typedef enum {
 typedef enum {
     ss_twr,
     ds_3_twr,
-    ds_4_twr, ///< not Implemented yet 
+    ds_4_twr, ///< not Implemented yet
     ds_all_twr, ///< not Implemnted yet
     simple_calibration,
     extended_calibration,
@@ -77,7 +77,7 @@ typedef enum {
 typedef struct {
     uint8_t deviceID;
     uint8_t devices;
-    uint8_t initiator; 
+    uint8_t initiator;
     uint8_t responder;
     uint16_t tx_ant_dly;
     uint16_t rx_ant_dly;
@@ -94,8 +94,9 @@ extern device_settings_t device_settings;
 typedef enum {
     twr_1_poll,
     ss_twr_2_resp,
-    ds_twr_2_resp, 
+    ds_twr_2_resp,
     ds_twr_3_final,
+	ds_twr_4_final,
     simple_poll,
     simple_resp,
     simple_final,
@@ -141,6 +142,14 @@ typedef struct {
 
 typedef struct {
     header_t header;
+    uint32_t poll_rx_ts;
+    uint32_t resp_tx_ts;
+    uint32_t final_rx_ts;
+    uint16_t crc;
+} msg_ds_twr_resp_t;
+
+typedef struct {
+    header_t header;
     uint32_t sensing_1_tx;
     uint32_t sensing_2_rx;
     uint32_t sensing_3_tx;
@@ -181,7 +190,7 @@ typedef struct {
 typedef struct  {
     json_header_t header;
     json_data_t data;
-} json_distance_msg_t; 
+} json_distance_msg_t;
 
 typedef struct {
     json_header_t header;
@@ -228,7 +237,7 @@ extern dwt_config_t sit_device_config;
 #define POLL_RX_TO_RESP_TX_DLY_UUS 1350 // 650 * 1,026us ->
 #define RESP_TX_TO_FINAL_RX_DLY_UUS 500 // 650 * 1,026us ->
 /* Receive response timeout. */
-#define RESP_RX_TIMEOUT_UUS 2000 // 400 * 1,026us -> 
+#define RESP_RX_TIMEOUT_UUS 2000 // 400 * 1,026us ->
 
 
 #define CPU_PROCESSING_TIME 400
@@ -244,7 +253,7 @@ extern dwt_config_t sit_device_config;
 
 /**
  *  UWB microsecond (uus) to device time unit (dtu, around 15.65 ps) conversion factor.
- * 1 uus = 512 / 499.2 µs and 1 µs = 499.2 * 128 dtu. 
+ * 1 uus = 512 / 499.2 µs and 1 µs = 499.2 * 128 dtu.
 **/
 #define UUS_TO_DWT_TIME 63898
 

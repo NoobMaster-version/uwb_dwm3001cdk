@@ -1,5 +1,5 @@
 /**********************************************************************************
- * 
+ *
  *  Copyright (C) 2023  Sven Hoyer
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -14,21 +14,21 @@
 
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- * 
+ *
 ***********************************************************************************/
 
-/** 
+/**
  * @file sit_distance.h
  * @author Sven Hoyer (svhoy)
  * @date 17.04.2023
  * @brief Defniton of functions for distance measurement.
  *
- * This file defines functions for distance measurement for the 
- * DWM3001cdk in the SIT system. 
+ * This file defines functions for distance measurement for the
+ * DWM3001cdk in the SIT system.
  *
- *  
+ *
  * @bug No known bugs.
- * @todo everything 
+ * @todo everything
  */
 
 #ifndef __SIT_DISTANCE_H__
@@ -39,16 +39,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-extern diagnostic_info diagnostic; 
+extern diagnostic_info diagnostic;
 
 void sit_receive_now(uint16_t preamble_detction_timeout, uint32_t rx_timeout);
 
 /***************************************************************************
- * Start ranging with a poll msg 
+ * Start ranging with a poll msg
  *
  * @param uint8_t* msg_data ->  pointer to the data you like to send with
  *                              the poll msg
- * @param uint16_t msg_size ->  length of the data you like to send 
+ * @param uint16_t msg_size ->  length of the data you like to send
  *
  * @return None
  *
@@ -56,25 +56,25 @@ void sit_receive_now(uint16_t preamble_detction_timeout, uint32_t rx_timeout);
 void sit_start_poll(uint8_t* msg_data, uint16_t msg_size);
 
 /***************************************************************************
- * Send a 
+ * Send a
  *
  * @param uint8_t* msg_data ->  pointer to the data you like to send with
  *                              the poll msg
- * @param uint16_t msg_size ->  length of the data you like to send 
+ * @param uint16_t msg_size ->  length of the data you like to send
  * @param unit64_t tx_time  ->  start sending msg at this system time
  *
  * @return bool true  -> if  the msg is send at the tx_time
- *         bool false -> if the msg is send to late 
+ *         bool false -> if the msg is send to late
  *
 ****************************************************************************/
 bool sit_send_at(uint8_t* msg_data, uint16_t size, uint32_t tx_time);
 bool sit_send_at_with_response(uint8_t* msg_data, uint16_t size, uint32_t tx_time);
 /***************************************************************************
- * Start ranging with a poll msg 
+ * Start ranging with a poll msg
  *
  * @param uint8_t* msg_data ->  pointer to the data you like to send with
  *                              the poll msg
- * @param uint32_t msg_size ->  length of the data you like to send 
+ * @param uint32_t msg_size ->  length of the data you like to send
  *
  * @return None
  *
@@ -86,6 +86,8 @@ bool sit_check_msg_id(msg_id_t id, msg_simple_t * message);
 bool sit_check_final_msg_id(msg_id_t id, msg_ss_twr_final_t* message);
 
 bool sit_check_ds_final_msg_id(msg_id_t id, msg_ds_twr_final_t* message);
+
+bool sit_check_ds_resp_msg_id(msg_id_t id, msg_ds_twr_resp_t* message);
 
 bool sit_check_sensing_3_msg_id(msg_id_t id, msg_sensing_3_t * message);
 
