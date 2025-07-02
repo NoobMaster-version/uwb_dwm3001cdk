@@ -32,8 +32,8 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 /* Example application name */
 #define APP_NAME "SIMPLE DS-TWR Initiator EXAMPLE\n"
 
-uint8_t this_initiator_node_id  = 1;
-uint8_t responder_node_id       = 2;
+uint8_t this_initiator_node_id  = 3;
+uint8_t responder_node_id       = 4;
 
 /* Inter-ranging delay period, in milliseconds. */
 #define RNG_DELAY_MS 1000
@@ -50,21 +50,21 @@ uint8_t responder_node_id       = 2;
 /* Frame sequence number, incremented after each transmission. */
 
 #define CPU_PROCESSING_TIME 400
-#define POLL_TX_TO_RESP_RX_DLY_UUS_T (350 + CPU_PROCESSING_TIME)
-#define RESP_RX_TO_FINAL_TX_DLY_UUS_T (350 + CPU_PROCESSING_TIME)
-#define RESP_RX_TIMEOUT_UUS_T 1150
+#define POLL_TX_TO_RESP_RX_DLY_UUS_T (2400)
+#define RESP_RX_TO_FINAL_TX_DLY_UUS_T (2400)
+#define RESP_RX_TIMEOUT_UUS_T 1200
 #define PRE_TIMEOUT 5
 
 
 int main(void) {
 	printk(APP_NAME);
 	printk("==================\n");
-    
+
     // INIT LED and let them Blink one Time to see Intitalion Finshed
     sit_led_init();
 
 	int init_ok = sit_init();
-    
+
     if(init_ok < 0){
         sit_set_led(2, 0);
     } else {
@@ -72,7 +72,7 @@ int main(void) {
     }
     uint8_t frame_sequenz = 0;
 	while (1) {
-        
+
         sit_set_rx_tx_delay_and_rx_timeout(POLL_TX_TO_RESP_RX_DLY_UUS_T, RESP_RX_TIMEOUT_UUS_T);
         sit_set_preamble_detection_timeout(PRE_TIMEOUT);
 
@@ -85,7 +85,7 @@ int main(void) {
         if(sit_check_msg_id(msg_id, &rx_resp_msg)) {
             uint64_t poll_tx_ts = get_tx_timestamp_u64();
 			uint64_t resp_rx_ts = get_rx_timestamp_u64();
-			
+
             uint32_t final_tx_time = (resp_rx_ts + (RESP_RX_TO_FINAL_TX_DLY_UUS_T * UUS_TO_DWT_TIME)) >> 8;
             uint64_t final_tx_ts = (((uint64_t)(final_tx_time & 0xFFFFFFFEUL)) << 8) + TX_ANT_DLY;
 

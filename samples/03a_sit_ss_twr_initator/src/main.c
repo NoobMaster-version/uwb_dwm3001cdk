@@ -161,11 +161,11 @@ int main(void)
 
                 /* Compute time of flight and distance. */
                 int32_t rtd_init = resp_rx_ts - poll_tx_ts;
-                uint32_t resp_tx_ts = (uint32_t)(rx_buffer[RESP_MSG_RESP_TX_TS_IDX] + 
+                uint32_t resp_tx_ts = (uint32_t)(rx_buffer[RESP_MSG_RESP_TX_TS_IDX] +
                                               (rx_buffer[RESP_MSG_RESP_TX_TS_IDX + 1] << 8) +
                                               (rx_buffer[RESP_MSG_RESP_TX_TS_IDX + 2] << 16) +
                                               (rx_buffer[RESP_MSG_RESP_TX_TS_IDX + 3] << 24));
-                uint32_t poll_rx_ts = (uint32_t)(rx_buffer[RESP_MSG_POLL_RX_TS_IDX] + 
+                uint32_t poll_rx_ts = (uint32_t)(rx_buffer[RESP_MSG_POLL_RX_TS_IDX] +
                                               (rx_buffer[RESP_MSG_POLL_RX_TS_IDX + 1] << 8) +
                                               (rx_buffer[RESP_MSG_POLL_RX_TS_IDX + 2] << 16) +
                                               (rx_buffer[RESP_MSG_POLL_RX_TS_IDX + 3] << 24));

@@ -3,7 +3,7 @@
  * Copyright (c) 2015 - Decawave Ltd, Dublin, Ireland.
  * Copyright (c) 2021 - Home Smart Mesh
  * Copyright (c) 2022 - Sven Hoyer
- * 
+ *
  * This file is part of Zephyr-DWM1001.
  *
  *   Zephyr-DWM1001 is free software: you can redistribute it and/or modify
@@ -18,12 +18,12 @@
  *
  *   You should have received a copy of the GNU General Public License
  *   along with Zephyr-DWM1001.  If not, see <https://www.gnu.org/licenses/>.
- * 
+ *
  */
 #include "deca_probe_interface.h"
 #include <config_options.h>
 #include <deca_device_api.h>
-#include <dw3000_hw.h> 
+#include <dw3000_hw.h>
 #include <deca_spi.h>
 #include <example_selection.h>
 #include <port.h>
@@ -102,10 +102,10 @@ int main(void) {
     } else {
         sit_set_led(1, 0);
     }
-    
+
     regStatus = sit_get_device_status();
     LOG_INF("statusreg = 0x%08x",regStatus);
-    k_sleep(K_SECONDS(2)); // Allow Logging to write out put 
+    k_sleep(K_SECONDS(2)); // Allow Logging to write out put
 
     uint8_t frame_sequenz = 0;
     k_yield();
@@ -134,19 +134,19 @@ int main(void) {
             if(sit_checkReceivedIdFinalMsg(msg_id, rx_final_msg)) {
                 uint64_t poll_tx_ts = get_tx_timestamp_u64();
                 uint64_t resp_rx_ts = get_rx_timestamp_u64();
-                
+
                 uint64_t poll_rx_ts = rx_final_msg.poll_rx_ts;
                 uint64_t resp_tx_ts = rx_final_msg.resp_tx_ts;
-    
-                float clockOffsetRatio = dwt_readcarrierintegrator() * 
+
+                float clockOffsetRatio = dwt_readcarrierintegrator() *
                         (FREQ_OFFSET_MULTIPLIER * HERTZ_TO_PPM_MULTIPLIER_CHAN_5 / 1.0e6) ;
 
                 uint64_t rtd_init = resp_rx_ts - poll_tx_ts;
                 uint64_t rtd_resp = resp_tx_ts - poll_rx_ts;
 
-                float tof =  ((rtd_init - rtd_resp * 
+                float tof =  ((rtd_init - rtd_resp *
                         (1 - clockOffsetRatio)) / 2.0) * DWT_TIME_UNITS;
-                
+
                 float distance = tof * SPEED_OF_LIGHT;
                 printk("initiator -> responder Distance: %3.2lf \n", distance);
                 if((int) distance >= 0) {

@@ -43,29 +43,13 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define TX_ANT_DLY 16385
 #define RX_ANT_DLY 16385
 
-/* Default communication configuration. We use default non-STS DW mode. */
-static dwt_config_t config = {
-    5,                /* Channel number. */
-    DWT_PLEN_4096,     /* Preamble length. Used in TX only. */
-    DWT_PAC32,         /* Preamble acquisition chunk size. Used in RX only. */
-    9,                /* TX preamble code. Used in TX only. */
-    9,                /* RX preamble code. Used in RX only. */
-    DWT_SFD_IEEE_4Z,     /* 0 to use standard 8 symbol SFD, 1 to use non-standard 8 symbol, 2 for non-standard 16 symbol SFD and 3 for 4z 8 symbol SDF type */
-    DWT_BR_850K,       /* Data rate. */
-    DWT_PHRMODE_STD,  /* PHY header mode. */
-    DWT_PHRRATE_STD,  /* PHY header rate. */
-    (4073),    /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
-    DWT_STS_MODE_OFF, /* STS disabled */
-    DWT_STS_LEN_32,   /* STS length see allowed values in Enum dwt_sts_lengths_e */
-    DWT_PDOA_M0       /* PDOA mode off */
-};
-
-uint8_t this_initiator_node_id  = 1;
-uint8_t responder_node_id       = 2;
 
 
-#define POLL_RX_TO_RESP_TX_DLY_UUS_T 900
-#define RESP_TX_TO_FINAL_RX_DLY_UUS_T 600
+uint8_t this_initiator_node_id  = 3;
+uint8_t responder_node_id       = 4;
+
+#define POLL_RX_TO_RESP_TX_DLY_UUS_T 3000
+#define RESP_TX_TO_FINAL_RX_DLY_UUS_T 2000
 #define FINAL_RX_TIMEOUT_T 1200
 #define PRE_TIMEOUT 5
 
